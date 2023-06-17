@@ -1,0 +1,105 @@
+<!-- index.html -->
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>チャットアプリ</title>
+  <style>
+    /* スタイルの設定 */
+    .chat-container {
+      width: 400px;
+      margin: 0 auto;
+      padding: 20px;
+      border: 1px solid #ccc;
+    }
+
+    .message-container {
+      margin-bottom: 10px;
+    }
+
+    .message {
+      padding: 10px;
+      border-radius: 5px;
+      width: fit-content;
+    }
+
+    .my-message {
+      background-color: #dcf8c6;
+      float: right;
+    }
+
+    .other-message {
+      background-color: #f3f3f3;
+      float: left;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div id="message-list"></div>
+    <input type="text" id="message-input" placeholder="メッセージを入力">
+    <button id="send-button">送信</button>
+  </div>
+
+  <script>
+    // メッセージ送信時の処理
+    function sendMessage() {
+      const messageInput = document.getElementById('message-input');
+      const message = messageInput.value.trim();
+
+      if (message !== '') {
+        displayMyMessage(message); // 自分のメッセージを表示
+
+        // TODO: サーバーにメッセージを送信する処理を実装
+
+        messageInput.value = ''; // 入力欄をクリア
+      }
+    }
+
+    // 自分のメッセージを表示
+    function displayMyMessage(message) {
+      const messageList = document.getElementById('message-list');
+      const messageContainer = document.createElement('div');
+      const messageElement = document.createElement('div');
+
+      messageContainer.className = 'message-container';
+      messageElement.className = 'message my-message';
+      messageElement.textContent = message;
+
+      messageContainer.appendChild(messageElement);
+      messageList.appendChild(messageContainer);
+
+      // スクロール位置を一番下に移動
+      messageList.scrollTop = messageList.scrollHeight;
+    }
+
+    // 相手のメッセージを表示
+    function displayOtherMessage(message) {
+      const messageList = document.getElementById('message-list');
+      const messageContainer = document.createElement('div');
+      const messageElement = document.createElement('div');
+
+      messageContainer.className = 'message-container';
+      messageElement.className = 'message other-message';
+      messageElement.textContent = message;
+
+      messageContainer.appendChild(messageElement);
+      messageList.appendChild(messageContainer);
+
+      // スクロール位置を一番下に移動
+      messageList.scrollTop = messageList.scrollHeight;
+    }
+
+    // 送信ボタンのクリックイベントを設定
+    document.getElementById('send-button').addEventListener('click', sendMessage);
+
+    // Enterキーで送信する処理を設定
+    document.getElementById('message-input').addEventListener('keydown', (event) => {
+      if (event.keyCode === 13) { // Enterキーのキーコード
+        sendMessage();
+      }
+    });
+  </script>
+</body>
+</html>
