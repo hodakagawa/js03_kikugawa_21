@@ -1,105 +1,130 @@
-<!-- index.html -->
 
 <!DOCTYPE html>
-<html>
+<html lang="ja">
+
 <head>
-  <meta charset="UTF-8">
-  <title>チャットアプリ</title>
-  <style>
-    /* スタイルの設定 */
-    .chat-container {
-      width: 400px;
-      margin: 0 auto;
-      padding: 20px;
-      border: 1px solid #ccc;
-    }
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="style.css">
+    <title>Chatアプリ</title>
 
-    .message-container {
-      margin-bottom: 10px;
-    }
-
-    .message {
-      padding: 10px;
-      border-radius: 5px;
-      width: fit-content;
-    }
-
-    .my-message {
-      background-color: #dcf8c6;
-      float: right;
-    }
-
-    .other-message {
-      background-color: #f3f3f3;
-      float: left;
-    }
-  </style>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js"></script>
 </head>
+
 <body>
-  <div class="chat-container">
-    <div id="message-list"></div>
-    <input type="text" id="message-input" placeholder="メッセージを入力">
-    <button id="send-button">送信</button>
-  </div>
+    <!-- コンテンツ表示画面 -->
+    <div>
+        <div>
+            名前: <input type="text" id="uname">
+        </div>
+        <div>
+            <textarea name="" id="text" cols="30" rows="10"></textarea>
+            <button id="send">送信</button>
+        </div>
+        <div id="output"></div>
+    </div>
+    <!--/ コンテンツ表示画面 -->
 
-  <script>
-    // メッセージ送信時の処理
-    function sendMessage() {
-      const messageInput = document.getElementById('message-input');
-      const message = messageInput.value.trim();
+    <!-- JQuery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <!-- JQuery -->
 
-      if (message !== '') {
-        displayMyMessage(message); // 自分のメッセージを表示
+    <!--** 以下Firebase **-->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js"></script>
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+        // TODO: Add SDKs for Firebase products that you want to use
+        // https://firebase.google.com/docs/web/setup#available-libraries
+      
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBmycUV4rIN_QBA4rgLkoZ9jqr27tngiG4",
+            authDomain: "fir-demo-881dc.firebaseapp.com",
+            projectId: "fir-demo-881dc",
+            storageBucket: "fir-demo-881dc.appspot.com",
+            messagingSenderId: "1058020188249",
+            appId: "1:1058020188249:web:30d19cd0e871ae073f1148"
+        };
+      
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
 
-        // TODO: サーバーにメッセージを送信する処理を実装
+        const db = firebase.database();
+        const chatRef = db.ref("chat");
 
-        messageInput.value = ''; // 入力欄をクリア
-      }
-    }
+        // メッセージ削除時の処理
+        function deleteMessage(key) {
+            // Firebaseからメッセージを削除
+            chatRef.child(key).remove();
+        }
 
-    // 自分のメッセージを表示
-    function displayMyMessage(message) {
-      const messageList = document.getElementById('message-list');
-      const messageContainer = document.createElement('div');
-      const messageElement = document.createElement('div');
+        // メッセージを表示
+        function displayMessage(key, msg) {
+            const messageElement = document.createElement("p");
+            messageElement.innerHTML = `${msg.uname}: ${msg.text}`;
 
-      messageContainer.className = 'message-container';
-      messageElement.className = 'message my-message';
-      messageElement.textContent = message;
+            const deleteButton = document.createElement("button");
+            deleteButton.textContent = "削除";
+            deleteButton.addEventListener("click", () => deleteMessage(key));
 
-      messageContainer.appendChild(messageElement);
-      messageList.appendChild(messageContainer);
+            messageElement.appendChild(deleteButton);
 
-      // スクロール位置を一番下に移動
-      messageList.scrollTop = messageList.scrollHeight;
-    }
+            $("#output").append(messageElement);
+        }
 
-    // 相手のメッセージを表示
-    function displayOtherMessage(message) {
-      const messageList = document.getElementById('message-list');
-      const messageContainer = document.createElement('div');
-      const messageElement = document.createElement('div');
+        // データが追加された時の処理
+        chatRef.on("child_added", (snapshot) => {
+            const key = snapshot.key;
+            const msg = snapshot.val();
 
-      messageContainer.className = 'message-container';
-      messageElement.className = 'message other-message';
-      messageElement.textContent = message;
+            displayMessage(key, msg);
+        });
 
-      messageContainer.appendChild(messageElement);
-      messageList.appendChild(messageContainer);
+        // データが削除された時の処理
+        chatRef.on("child_removed", (snapshot) => {
+            const key = snapshot.key;
+            $("#" + key).remove();
+        });
 
-      // スクロール位置を一番下に移動
-      messageList.scrollTop = messageList.scrollHeight;
-    }
+        $(document).ready(function () {
+            // 送信ボタンが押されたら、データをDBに送信
+            $("#send").on("click", function () {
+                // 保存したいデータのオブジェクトを作る
+                const msg = {
+                    uname: $("#uname").val(),
+                    text: $("#text").val()
+                };
 
-    // 送信ボタンのクリックイベントを設定
-    document.getElementById('send-button').addEventListener('click', sendMessage);
+                // 新規のデータを送れる状態にセット
+                const newPostRef = chatRef.push();
 
-    // Enterキーで送信する処理を設定
-    document.getElementById('message-input').addEventListener('keydown', (event) => {
-      if (event.keyCode === 13) { // Enterキーのキーコード
-        sendMessage();
-      }
-    });
-  </script>
+                // DBに値を送信
+                newPostRef.set(msg);
+
+                // 入力欄をクリア
+                $("#text").val("");
+            });
+
+            // エンターキーが押されたら送信
+            $("#text").on("keydown", function (event) {
+                if (event.keyCode === 13) {
+                    event.preventDefault();
+                    $("#send").click();
+                }
+            });
+        });
+    </script>
 </body>
+
 </html>
+
+
+onChildAdded(dbRef,function(data){
+  const msg=data.val();
+  const key=data.key;
+  $("#output").append(`<p>${msg.uname}:${msg.text}</p>`)
+
+});
+
+</script>

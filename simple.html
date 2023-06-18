@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="utf-8">
+    <link rel="stylesheet" href="style.css">
     <title>Chatアプリ</title>
 </head>
 
@@ -19,18 +20,9 @@
         </div>
         <div id="output"></div>
     </div>
-
-
-
-
-
-
-
-
     <!--/ コンテンツ表示画面 -->
 
-
-
+    
     <!-- JQuery -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <!-- JQuery -->
@@ -55,49 +47,107 @@
             appId: "1:1058020188249:web:30d19cd0e871ae073f1148"
         };
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
+        
+       // Initialize Firebase
+       const app = initializeApp(firebaseConfig);
 
-        // Realtime DB に接続する
-        const db = getDatabase(app);
-        const dbRef = ref(db, "chat");
+// Realtime DB に接続する
+const db = getDatabase(app);
+const dbRef = ref(db, "chat");
 
-        // 送信ボタンが押されたら、データをDBに送信
-        $("#send").on("click", function () {
-            // 保存したいデータのオブジェクトを作る
-            const msg = {
-                uname: $("#uname").val(),
-                text: $("#text").val()
-            };
-            console.log(msg)
+// 送信ボタンが押されたら、データをDBに送信
+$("#send").on("click", function () {
+    // 保存したいデータのオブジェクトを作る
+    const msg = {
+        uname: $("#uname").val(),
+        text: $("#text").val(),
+        timestamp: new Date().toLocaleString() // 送信時刻を追加
+    };
 
-            // 新規のデータを送れる状態にセット
-            const newPostRef = push(dbRef);
+    // 新規のデータを送れる状態にセット
+    const newPostRef = push(dbRef);
 
-            // DBに値を送信
-            set(newPostRef, msg);
+    // DBに値を送信
+    set(newPostRef, msg);
+
+    // 入力欄をクリア
+    $("#text").val("");
+    $("#image").val("");
+});
+
+// エンターキーが押されたら送信
+$("#text").on("keydown", function (event) {
+    if (event.keyCode === 13) {
+        event.preventDefault();
+        $("#send").click();
+    }
+});
+
+// 画像が選択されたら送信
+$("#image").on("change", function (event) {
+    const file = event.target.files[0];
+
+    // 保存したいデータのオブジェクトを作る
+    const msg = {
+        uname: $("#uname").val(),
+        image: null,
+        timestamp: new Date().toLocaleString() // 送信時刻を追加
+    };
+
+    if (file) {
+        // 画像ファイルをアップロード
+        const storageRef = ref(getStorage(app), "images/" + file.name);
+        const uploadTask = uploadBytes(storageRef, file);
+
+        // アップロードが完了したらURLを取得してメッセージを送信
+        uploadTask.then((snapshot) => {
+            getDownloadURL(snapshot.ref).then((url) => {
+                msg.image = url;
+                const newPostRef = push(dbRef);
+                set(newPostRef, msg);
+            });
         });
+    }
+});
 
-        onChildAdded(dbRef,function(data){
-            const msg=data.val();
-            const key=data.key;
-            $("#output").append(`<p>${msg.uname}:${msg.text}</p>`)
+// メッセージを表示
+function displayMessage(key, msg) {
+    const messageElement = $("<div>").addClass("message").attr("id", key);
+    const nameElement = $("<p>").text(msg.uname + ":");
+    const textElement = $("<p>").text(msg.text);
+    const timestampElement = $("<p>").addClass("timestamp").text(msg.timestamp); // 送信時刻を表示
 
-        });
+    if (msg.image) {
+        const imageElement = $("<img>").attr("src", msg.image);
+        messageElement.append(nameElement, textElement, timestampElement, imageElement);
+    } else {
+        messageElement.append(nameElement, textElement, timestampElement);
+    }
 
-    </script>
+    const deleteButton = $("<button>").text("削除").click(function () {
+        // Firebaseからメッセージを削除
+        remove(ref(db, `chat/${key}`));
+        $("#" + key).remove(); // メッセージを表示から削除
+    });
 
+    messageElement.append(deleteButton);
+    $("#output").append(messageElement);
+}
 
+// データが追加された時の処理
+onChildAdded(dbRef, (snapshot) => {
+    const key = snapshot.key;
+    const msg = snapshot.val();
 
+    displayMessage(key, msg);
+});
 
-
-
-
-
-
-
-
-
+// データが削除された時の処理
+onChildRemoved(dbRef, (snapshot) => {
+    const key = snapshot.key;
+    $("#" + key).remove();
+});
+</script>
 </body>
 
 </html>
